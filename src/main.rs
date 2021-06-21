@@ -40,6 +40,7 @@ fn hello(query: Query<&Position, With<Player>>) {
 
 fn main() {
     App::build()
+        .add_plugins(DefaultPlugins)
         .add_startup_system(add_player.system())
         .add_startup_system(add_pipes.system())
         .add_system(hello.system())
