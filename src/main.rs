@@ -32,15 +32,20 @@ fn add_pipes(mut commands: Commands) {
     commands.spawn_bundle((Pipe {}, Position { x: 10.0, y: 0.0 }, Render {}));
 }
 
-fn hello(query: Query<&Position, With<Player>>) {
-    for player in query.iter() {
-        println!("{:?}", player);
+struct GameTimer(Timer);
+
+fn hello(time: Res<Time>, mut timer: ResMut<GameTimer>, query: Query<&Position, With<Player>>) {
+    if timer.0.tick(time.delta()).just_finished() {
+        for player in query.iter() {
+            println!("{:?}", player);
+        }
     }
 }
 
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
+        .insert_resource(GameTimer(Timer::from_seconds(5.0, true)))
         .add_startup_system(add_player.system())
         .add_startup_system(add_pipes.system())
         .add_system(hello.system())
