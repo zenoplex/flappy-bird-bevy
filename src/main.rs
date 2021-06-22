@@ -19,13 +19,18 @@ struct Velocity {
 }
 struct Render {}
 
-fn add_player(mut commands: Commands) {
-    commands.spawn_bundle((
-        Player {},
-        Position { x: 0.0, y: 0.0 },
-        Velocity { x: 0.0, y: 0.0 },
-        Render {},
-    ));
+fn add_player(
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut commands: Commands,
+) {
+    let texture = asset_server.load("bird.png");
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(texture.into()),
+            ..Default::default()
+        })
+        .insert_bundle((Player {}, Velocity { x: 0.0, y: 0.0 }, Render {}));
 }
 
 fn add_pipes(mut commands: Commands) {
@@ -42,10 +47,15 @@ fn hello(time: Res<Time>, mut timer: ResMut<GameTimer>, query: Query<&Position, 
     }
 }
 
+fn setup(mut commands: Commands) {
+    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+}
+
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTimer(Timer::from_seconds(5.0, true)))
+        .add_startup_system(setup.system())
         .add_startup_system(add_player.system())
         .add_startup_system(add_pipes.system())
         .add_system(hello.system())
