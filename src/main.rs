@@ -17,7 +17,6 @@ struct Velocity {
     x: f32,
     y: f32,
 }
-struct Render {}
 
 fn add_player(
     asset_server: Res<AssetServer>,
@@ -32,11 +31,11 @@ fn add_player(
             // sprite: Sprite::new(Vec2::new(120.0, 30.0)),
             ..Default::default()
         })
-        .insert_bundle((Player {}, Velocity { x: 0.0, y: 1.0 }, Render {}));
+        .insert_bundle((Player {}, Velocity { x: 0.0, y: 1.0 }));
 }
 
 fn add_pipes(mut commands: Commands) {
-    commands.spawn_bundle((Pipe {}, Position { x: 10.0, y: 0.0 }, Render {}));
+    commands.spawn_bundle((Pipe {}, Position { x: 10.0, y: 0.0 }));
 }
 
 struct GameTimer(Timer);
