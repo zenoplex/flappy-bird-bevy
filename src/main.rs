@@ -16,18 +16,23 @@ fn add_player(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut commands: Commands,
+    windows: Res<Windows>,
 ) {
     let texture = asset_server.load("bird.png");
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.add(texture.into()),
-            // material: materials.add(Color::rgb(0.5, 0.5, 1.0).into()),
-            // sprite: Sprite::new(Vec2::new(120.0, 30.0)),
-            ..Default::default()
-        })
-        .insert(Player {
-            velocity: Vec3::ZERO,
-        });
+    if let Some(window) = windows.get_primary() {
+        commands
+            .spawn_bundle(SpriteBundle {
+                material: materials.add(texture.into()),
+                transform: Transform {
+                    translation: Vec3::new(-(window.width() / 10.0), 0.0, 0.),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Player {
+                velocity: Vec3::ZERO,
+            });
+    }
 }
 
 fn setup(mut commands: Commands) {
