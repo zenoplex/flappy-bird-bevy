@@ -40,6 +40,52 @@ fn add_player(
     }
 }
 
+struct SpawnTimer(Timer);
+
+fn spawn_pipe(
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut commands: Commands,
+    windows: Res<Windows>,
+    time: Res<Time>,
+    mut spawn_timer: ResMut<SpawnTimer>,
+) {
+    if !spawn_timer.0.tick(time.delta()).finished() {
+        return;
+    }
+    // TODO: calc positions
+    // calc gaps
+    // move pipes
+
+    let texture = asset_server.load("pipe.png");
+    if let Some(window) = windows.get_primary() {
+        // Bottom
+        commands
+            .spawn_bundle(SpriteBundle {
+                material: materials.add(texture.clone().into()),
+                transform: Transform {
+                    // translation: Vec3::new(-(window.width() / 10.0), 0.0, 0.),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Pipe {});
+
+        // Top
+        commands
+            .spawn_bundle(SpriteBundle {
+                material: materials.add(texture.into()),
+                transform: Transform {
+                    translation: Vec3::new(100.0, 0.0, 0.),
+                    rotation: Quat::from_rotation_z(PI),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Pipe {});
+    }
+}
+
 fn setup(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 }
@@ -87,5 +133,7 @@ fn main() {
         .add_startup_system(add_player.system())
         .add_system(move_system.system())
         .add_system(input_system.system())
+        .insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
+        .add_system(spawn_pipe.system())
         .run();
 }
