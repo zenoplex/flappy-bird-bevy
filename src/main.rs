@@ -1,6 +1,11 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 
 const GRAVITY: f32 = 10.0;
+const MAX_VELOCITY_Y: f32 = 200.0;
+const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
+const MAX_ANGLE_DOWN: f32 = PI * 0.5;
 
 #[derive(Debug)]
 struct Player {
@@ -47,18 +52,31 @@ fn input_system(keyboard_input: Res<Input<KeyCode>>, mut commands: Commands) {
 
 fn move_system(
     time: Res<Time>,
+    // Maybe use QuerySet?
     mut q: Query<(&mut Player, &mut Transform)>,
-    mut q2: Query<(Entity, &mut WantToFlap)>,
+    mut q2: Query<(Entity, &WantToFlap)>,
     mut commands: Commands,
 ) {
-    for (mut player, mut t) in q.iter_mut() {
+    for (mut player, mut transform) in q.iter_mut() {
+        let delta = time.delta_seconds();
         if let Ok((entity, _)) = q2.single_mut() {
             player.velocity.y = 5.0;
             commands.entity(entity).despawn();
         }
 
-        player.velocity.y += -GRAVITY * time.delta_seconds();
-        t.translation.y += player.velocity.y;
+        player.velocity.y += -GRAVITY * delta;
+        // Clamp terminal velocity
+        player.velocity.y = player.velocity.y.max(-MAX_VELOCITY_Y);
+        transform.translation.y += player.velocity.y;
+        let angle = player
+            .velocity
+            .y
+            .atan2(1.0)
+            .clamp(-MAX_ANGLE_DOWN, MAX_ANGLE_UP);
+
+        println!("{}", angle);
+
+        transform.rotation = Quat::from_rotation_z(angle);
     }
 }
 
