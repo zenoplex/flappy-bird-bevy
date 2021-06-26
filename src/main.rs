@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{math::vec2, prelude::*};
 
 const GRAVITY: f32 = 10.0;
 const MAX_VELOCITY_Y: f32 = 200.0;
@@ -14,6 +14,8 @@ struct Player {
 
 #[derive(Debug)]
 struct Pipe {}
+
+struct Velocity(Vec2);
 
 struct WantToFlap {}
 
@@ -57,6 +59,8 @@ fn spawn_pipe(
     // calc gaps
     // move pipes
 
+    // TODO: Remove hard coded variable
+    let velocity = Vec2::new(-100.0, 0.0);
     let texture = asset_server.load("pipe.png");
     if let Some(window) = windows.get_primary() {
         // Bottom
@@ -69,7 +73,8 @@ fn spawn_pipe(
                 },
                 ..Default::default()
             })
-            .insert(Pipe {});
+            .insert(Pipe {})
+            .insert(Velocity(velocity));
 
         // Top
         commands
@@ -82,7 +87,8 @@ fn spawn_pipe(
                 },
                 ..Default::default()
             })
-            .insert(Pipe {});
+            .insert(Pipe {})
+            .insert(Velocity(velocity));
     }
 }
 
@@ -120,10 +126,20 @@ fn move_system(
             .atan2(1.0)
             .clamp(-MAX_ANGLE_DOWN, MAX_ANGLE_UP);
 
-        println!("{}", angle);
+        // println!("{}", angle);
 
         transform.rotation = Quat::from_rotation_z(angle);
     }
+}
+
+fn pipe_move_system(t: Res<Time>, mut q: Query<(&Velocity, &mut Transform)>) {
+    let delta = t.delta_seconds();
+    q.iter_mut().for_each(|(v, mut t)| {
+        t.translation.x += v.0.x * delta;
+        t.translation.y += v.0.y * delta;
+
+        // println!("{:?}", translation.x);
+    })
 }
 
 fn main() {
@@ -135,5 +151,6 @@ fn main() {
         .add_system(input_system.system())
         .insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
         .add_system(spawn_pipe.system())
+        .add_system(pipe_move_system.system())
         .run();
 }
