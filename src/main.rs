@@ -1,11 +1,13 @@
 use std::f32::consts::PI;
 
-use bevy::{math::vec2, prelude::*};
+use bevy::prelude::*;
 
 const GRAVITY: f32 = 10.0;
 const MAX_VELOCITY_Y: f32 = 200.0;
 const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
 const MAX_ANGLE_DOWN: f32 = PI * 0.5;
+const PIPE_WIDTH: f32 = 70.0;
+const PIPE_HEIGHT: f32 = 430.0;
 
 #[derive(Debug)]
 struct Player {
@@ -60,15 +62,24 @@ fn spawn_pipe(
     // move pipes
 
     // TODO: Remove hard coded variable
-    let velocity = Vec2::new(-100.0, 0.0);
+    let velocity = Vec2::new(-200.0, 0.0);
     let texture = asset_server.load("pipe.png");
+
     if let Some(window) = windows.get_primary() {
+        let pos_x = window.width() / 2.0;
+        let pipe_offset_x = PIPE_WIDTH / 2.0;
+        let pipe_offset_y = PIPE_HEIGHT / 2.0;
+        // TODO: use rand
+        let max_gap_size = window.height() / 4.0;
+        let min_gap_size = window.height() / 10.0;
+        let gap_y = max_gap_size;
+
         // Bottom
         commands
             .spawn_bundle(SpriteBundle {
                 material: materials.add(texture.clone().into()),
                 transform: Transform {
-                    // translation: Vec3::new(-(window.width() / 10.0), 0.0, 0.),
+                    translation: Vec3::new(pos_x, -(pipe_offset_y + gap_y), 10.0),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -81,7 +92,7 @@ fn spawn_pipe(
             .spawn_bundle(SpriteBundle {
                 material: materials.add(texture.into()),
                 transform: Transform {
-                    translation: Vec3::new(100.0, 0.0, 0.),
+                    translation: Vec3::new(pos_x, pipe_offset_y + gap_y, 10.0),
                     rotation: Quat::from_rotation_z(PI),
                     ..Default::default()
                 },
@@ -149,7 +160,7 @@ fn main() {
         .add_startup_system(add_player.system())
         .add_system(move_system.system())
         .add_system(input_system.system())
-        .insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
+        .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
         .add_system(spawn_pipe.system())
         .add_system(pipe_move_system.system())
         .run();
