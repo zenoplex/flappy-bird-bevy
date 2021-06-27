@@ -7,8 +7,7 @@ const GRAVITY: f32 = 10.0;
 const MAX_VELOCITY_Y: f32 = 200.0;
 const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
 const MAX_ANGLE_DOWN: f32 = PI * 0.5;
-const PLAYER_WIDTH: f32 = 38.0;
-const PLAYER_HEIGHT: f32 = 24.0;
+// Can replace with Sprite.size
 const PIPE_WIDTH: f32 = 70.0;
 const PIPE_HEIGHT: f32 = 430.0;
 
