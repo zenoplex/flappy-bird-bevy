@@ -1,12 +1,14 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::collide_aabb::collide};
 use rand::{thread_rng, Rng};
 
 const GRAVITY: f32 = 10.0;
 const MAX_VELOCITY_Y: f32 = 200.0;
 const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
 const MAX_ANGLE_DOWN: f32 = PI * 0.5;
+const PLAYER_WIDTH: f32 = 38.0;
+const PLAYER_HEIGHT: f32 = 24.0;
 const PIPE_WIDTH: f32 = 70.0;
 const PIPE_HEIGHT: f32 = 430.0;
 
@@ -165,6 +167,28 @@ fn pipe_move_system(t: Res<Time>, mut q: Query<(&Velocity, &mut Transform)>) {
     })
 }
 
+fn collistion_system(
+    player_query: Query<(&Player, &Transform, &Sprite)>,
+    pipe_query: Query<(&Pipe, &Transform, &Sprite)>,
+) {
+    if let Ok((_, player_tranform, player_sprite)) = player_query.single() {
+        pipe_query
+            .iter()
+            .for_each(|(_, pipe_tranform, pipe_sprite)| {
+                let collision = collide(
+                    player_tranform.translation,
+                    player_sprite.size,
+                    pipe_tranform.translation,
+                    pipe_sprite.size,
+                );
+
+                if let Some(collision) = collision {
+                    println!("end game, {:?}", collision);
+                }
+            })
+    }
+}
+
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
@@ -175,5 +199,6 @@ fn main() {
         .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
         .add_system(spawn_pipe.system())
         .add_system(pipe_move_system.system())
+        .add_system(collistion_system.system())
         .run();
 }
