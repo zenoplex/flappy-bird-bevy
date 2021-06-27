@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use rand::{thread_rng, Rng};
 
 const GRAVITY: f32 = 10.0;
 const MAX_VELOCITY_Y: f32 = 200.0;
@@ -70,16 +71,23 @@ fn spawn_pipe(
         let pipe_offset_x = PIPE_WIDTH / 2.0;
         let pipe_offset_y = PIPE_HEIGHT / 2.0;
         // TODO: use rand
+        let mut rng = thread_rng();
         let max_gap_size = window.height() / 4.0;
         let min_gap_size = window.height() / 10.0;
-        let gap_y = max_gap_size;
+        let gap_y = rng.gen_range(0.0..(window.height() / 2.0)) - window.height() / 4.0;
+        let half_gap_size = rng.gen_range(min_gap_size..max_gap_size) / 2.0;
 
         // Bottom
         commands
             .spawn_bundle(SpriteBundle {
                 material: materials.add(texture.clone().into()),
                 transform: Transform {
-                    translation: Vec3::new(pos_x, -(pipe_offset_y + gap_y), 10.0),
+                    // TODO: add random up downs
+                    translation: Vec3::new(
+                        pos_x + PIPE_WIDTH,
+                        gap_y - pipe_offset_y - half_gap_size,
+                        10.0,
+                    ),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -92,8 +100,12 @@ fn spawn_pipe(
             .spawn_bundle(SpriteBundle {
                 material: materials.add(texture.into()),
                 transform: Transform {
-                    translation: Vec3::new(pos_x, pipe_offset_y + gap_y, 10.0),
-                    rotation: Quat::from_rotation_z(PI),
+                    translation: Vec3::new(
+                        pos_x + PIPE_WIDTH,
+                        gap_y + pipe_offset_y + half_gap_size,
+                        10.0,
+                    ),
+                    rotation: Quat::from_rotation_z(PI).mul_quat(Quat::from_rotation_y(PI)),
                     ..Default::default()
                 },
                 ..Default::default()
