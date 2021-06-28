@@ -137,7 +137,6 @@ fn move_system(
     mut q2: Query<(Entity, &WantToFlap)>,
     mut commands: Commands,
 ) {
-    println!("move");
     for (mut player, mut transform) in q.iter_mut() {
         let delta = time.delta_seconds();
         if let Ok((entity, _)) = q2.single_mut() {
@@ -198,6 +197,36 @@ fn collistion_system(
     }
 }
 
+fn game_over_system(mut commands: Commands, asset_server: Res<AssetServer>) {
+    println!("gameover");
+    let font = asset_server.load("flappy_bird.ttf");
+    let text_style = TextStyle {
+        font,
+        font_size: 120.0,
+        color: Color::WHITE,
+    };
+    let text_alignment = TextAlignment {
+        vertical: VerticalAlign::Center,
+        horizontal: HorizontalAlign::Center,
+    };
+
+    commands.spawn_bundle(Text2dBundle {
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 50.0),
+            ..Default::default()
+        },
+        text: Text::with_section(
+            "
+Game Over
+Score: 0
+",
+            text_style,
+            text_alignment,
+        ),
+        ..Default::default()
+    });
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum AppState {
     MainMenu,
@@ -218,6 +247,9 @@ fn main() {
                 .with_system(spawn_pipe.system())
                 .with_system(pipe_move_system.system())
                 .with_system(collistion_system.system()),
+        )
+        .add_system_set(
+            SystemSet::on_enter(AppState::GameOver).with_system(game_over_system.system()),
         )
         // TODO: Add menu screen
         .add_state(AppState::InGame)
