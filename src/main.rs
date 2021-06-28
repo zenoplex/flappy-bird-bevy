@@ -120,13 +120,26 @@ fn spawn_pipe(
     }
 }
 
-fn setup(mut commands: Commands) {
+#[derive(Default, Clone)]
+struct UiFont(Handle<Font>);
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let handle: Handle<Font> = asset_server.load("flappy_bird.ttf");
+    commands.insert_resource(UiFont(handle));
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 }
 
-fn input_system(keyboard_input: Res<Input<KeyCode>>, mut commands: Commands) {
+fn in_game_input_system(keyboard_input: Res<Input<KeyCode>>, mut commands: Commands) {
     if keyboard_input.pressed(KeyCode::Up) {
         commands.spawn().insert(WantToFlap {});
+    }
+}
+
+fn menu_input_system(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<State<AppState>>) {
+    if keyboard_input.pressed(KeyCode::Return) {
+        app_state
+            .set(AppState::InGame)
+            .expect("Error switching app_state");
     }
 }
 
@@ -153,8 +166,6 @@ fn move_system(
             .y
             .atan2(1.0)
             .clamp(-MAX_ANGLE_DOWN, MAX_ANGLE_UP);
-
-        // println!("{}", angle);
 
         transform.rotation = Quat::from_rotation_z(angle);
     }
@@ -197,11 +208,11 @@ fn collistion_system(
     }
 }
 
-fn game_over_system(mut commands: Commands, asset_server: Res<AssetServer>) {
-    println!("gameover");
-    let font = asset_server.load("flappy_bird.ttf");
+struct GameOverScreen;
+
+fn game_over_system(mut commands: Commands, font: Res<UiFont>) {
     let text_style = TextStyle {
-        font,
+        font: font.0.clone(),
         font_size: 120.0,
         color: Color::WHITE,
     };
@@ -210,20 +221,28 @@ fn game_over_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         horizontal: HorizontalAlign::Center,
     };
 
-    commands.spawn_bundle(Text2dBundle {
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, 50.0),
-            ..Default::default()
-        },
-        text: Text::with_section(
-            "
+    commands
+        .spawn_bundle(Text2dBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 50.0),
+                ..Default::default()
+            },
+            text: Text::with_section(
+                "
 Game Over
 Score: 0
 ",
-            text_style,
-            text_alignment,
-        ),
-        ..Default::default()
+                text_style,
+                text_alignment,
+            ),
+            ..Default::default()
+        })
+        .insert(GameOverScreen);
+}
+
+fn restart_game_system(mut commands: Commands, game_over_query: Query<(Entity, &GameOverScreen)>) {
+    game_over_query.iter().for_each(|(entity, _)| {
+        commands.entity(entity).despawn();
     });
 }
 
@@ -243,13 +262,18 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
                 .with_system(move_system.system())
-                .with_system(input_system.system())
+                .with_system(in_game_input_system.system())
                 .with_system(spawn_pipe.system())
                 .with_system(pipe_move_system.system())
                 .with_system(collistion_system.system()),
         )
         .add_system_set(
-            SystemSet::on_enter(AppState::GameOver).with_system(game_over_system.system()),
+            SystemSet::on_update(AppState::GameOver)
+                .with_system(game_over_system.system())
+                .with_system(menu_input_system.system()),
+        )
+        .add_system_set(
+            SystemSet::on_exit(AppState::GameOver).with_system(restart_game_system.system()),
         )
         // TODO: Add menu screen
         .add_state(AppState::InGame)
