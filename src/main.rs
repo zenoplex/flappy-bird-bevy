@@ -11,6 +11,10 @@ const MAX_ANGLE_DOWN: f32 = PI * 0.5;
 const PIPE_WIDTH: f32 = 70.0;
 const PIPE_HEIGHT: f32 = 430.0;
 
+struct GameState {
+    score: u32,
+}
+
 #[derive(Debug)]
 struct Player {
     velocity: Vec3,
@@ -133,6 +137,7 @@ fn move_system(
     mut q2: Query<(Entity, &WantToFlap)>,
     mut commands: Commands,
 ) {
+    println!("move");
     for (mut player, mut transform) in q.iter_mut() {
         let delta = time.delta_seconds();
         if let Ok((entity, _)) = q2.single_mut() {
@@ -169,6 +174,7 @@ fn pipe_move_system(t: Res<Time>, mut q: Query<(&Velocity, &mut Transform)>) {
 fn collistion_system(
     player_query: Query<(&Player, &Transform, &Sprite)>,
     pipe_query: Query<(&Pipe, &Transform, &Sprite)>,
+    mut app_state: ResMut<State<AppState>>,
 ) {
     if let Ok((_, player_tranform, player_sprite)) = player_query.single() {
         pipe_query
@@ -183,21 +189,37 @@ fn collistion_system(
 
                 if let Some(collision) = collision {
                     println!("end game, {:?}", collision);
+
+                    app_state
+                        .set(AppState::GameOver)
+                        .expect("Failed to change app_state");
                 }
             })
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+enum AppState {
+    MainMenu,
+    InGame,
+    GameOver,
+}
+
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
+        .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
         .add_startup_system(setup.system())
         .add_startup_system(add_player.system())
-        .add_system(move_system.system())
-        .add_system(input_system.system())
-        .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
-        .add_system(spawn_pipe.system())
-        .add_system(pipe_move_system.system())
-        .add_system(collistion_system.system())
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame)
+                .with_system(move_system.system())
+                .with_system(input_system.system())
+                .with_system(spawn_pipe.system())
+                .with_system(pipe_move_system.system())
+                .with_system(collistion_system.system()),
+        )
+        // TODO: Add menu screen
+        .add_state(AppState::InGame)
         .run();
 }
