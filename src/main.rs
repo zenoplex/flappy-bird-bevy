@@ -21,11 +21,13 @@ struct Player {
 }
 
 #[derive(Debug)]
-struct Pipe {}
+struct Pipe;
 
 struct Velocity(Vec2);
 
-struct WantToFlap {}
+struct WantToFlap;
+
+struct OffscreenDespawn;
 
 fn add_player(
     asset_server: Res<AssetServer>,
@@ -97,7 +99,8 @@ fn spawn_pipe(
                 },
                 ..Default::default()
             })
-            .insert(Pipe {})
+            .insert(Pipe)
+            .insert(OffscreenDespawn)
             .insert(Velocity(velocity));
 
         // Top
@@ -115,7 +118,8 @@ fn spawn_pipe(
                 },
                 ..Default::default()
             })
-            .insert(Pipe {})
+            .insert(Pipe)
+            .insert(OffscreenDespawn)
             .insert(Velocity(velocity));
     }
 }
@@ -208,6 +212,28 @@ fn collistion_system(
     }
 }
 
+fn offscreen_despawn_system(
+    windows: Res<Windows>,
+    query: Query<(Entity, &Transform)>,
+    mut commands: Commands,
+) {
+    let window = match windows.get_primary() {
+        Some(window) => window,
+        None => return,
+    };
+
+    let safe_margin = 300.0;
+    let half_width = window.width() / 2.0;
+    query.iter().for_each(|(entity, transform)| {
+        if transform.translation.x < -half_width - safe_margin
+            || transform.translation.x > half_width + safe_margin
+        {
+            println!("Remove entity {:?}", &entity);
+            commands.entity(entity).despawn();
+        }
+    });
+}
+
 struct GameOverScreen;
 
 fn game_over_system(mut commands: Commands, font: Res<UiFont>) {
@@ -282,12 +308,14 @@ fn main() {
                 .with_system(in_game_input_system.system())
                 .with_system(spawn_pipe.system())
                 .with_system(pipe_move_system.system())
-                .with_system(collistion_system.system()),
+                .with_system(collistion_system.system())
+                .with_system(offscreen_despawn_system.system()),
         )
         .add_system_set(
             SystemSet::on_update(AppState::GameOver)
                 .with_system(game_over_system.system())
-                .with_system(menu_input_system.system()),
+                .with_system(menu_input_system.system())
+                .with_system(offscreen_despawn_system.system()),
         )
         .add_system_set(
             SystemSet::on_exit(AppState::GameOver).with_system(restart_game_system.system()),
