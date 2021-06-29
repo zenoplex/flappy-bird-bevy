@@ -299,6 +299,8 @@ enum AppState {
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
+        .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
         .add_startup_system(setup.system())
         .add_startup_system(add_player.system())
