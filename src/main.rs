@@ -240,10 +240,27 @@ Score: 0
         .insert(GameOverScreen);
 }
 
-fn restart_game_system(mut commands: Commands, game_over_query: Query<(Entity, &GameOverScreen)>) {
+// should be initializing position and stuff
+fn restart_game_system(
+    mut commands: Commands,
+    game_over_query: Query<(Entity, &GameOverScreen)>,
+    pipe_query: Query<(Entity, &Pipe)>,
+    mut player_query: Query<(&Player, &mut Transform)>,
+    windows: Res<Windows>,
+) {
     game_over_query.iter().for_each(|(entity, _)| {
         commands.entity(entity).despawn();
     });
+
+    pipe_query.iter().for_each(|(pipe_entity, _)| {
+        commands.entity(pipe_entity).despawn();
+    });
+
+    if let Some(window) = windows.get_primary() {
+        player_query.iter_mut().for_each(|(_, mut transform)| {
+            transform.translation = Vec3::new(-(window.width() / 10.0), 0.0, 0.0);
+        });
+    };
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
