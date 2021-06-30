@@ -314,8 +314,10 @@ fn main() {
                 .with_system(offscreen_despawn_system.system()),
         )
         .add_system_set(
+            SystemSet::on_enter(AppState::GameOver).with_system(game_over_system.system()),
+        )
+        .add_system_set(
             SystemSet::on_update(AppState::GameOver)
-                .with_system(game_over_system.system())
                 .with_system(menu_input_system.system())
                 .with_system(offscreen_despawn_system.system()),
         )
