@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::{app, prelude::*, sprite::collide_aabb::collide};
+use bevy::{prelude::*, sprite::collide_aabb::collide};
 use rand::{thread_rng, Rng};
 
 const GRAVITY: f32 = 10.0;
@@ -215,7 +215,7 @@ fn collistion_system(
 fn boundary_system(
     windows: Res<Windows>,
     mut app_state: ResMut<State<AppState>>,
-    player_query: Query<(&Transform, &Sprite), With<Player>>,
+    mut player_query: Query<(&mut Transform, &Sprite, &mut Player)>,
 ) {
     let window = match windows.get_primary() {
         Some(window) => window,
@@ -224,14 +224,22 @@ fn boundary_system(
 
     let half_height = window.height() / 2.0;
 
-    player_query.iter().for_each(|(transform, sprite)| {
-        // TODO: set offset for ground
-        if transform.translation.y < -(half_height + sprite.size.y) {
-            app_state
-                .set(AppState::GameOver)
-                .expect("Failed to change state");
-        };
-    });
+    player_query
+        .iter_mut()
+        .for_each(|(mut transform, sprite, mut player)| {
+            let player_half_height = sprite.size.y;
+            // TODO: set offset for ground
+            if transform.translation.y < -(half_height - player_half_height) {
+                app_state
+                    .set(AppState::GameOver)
+                    .expect("Failed to change state");
+            };
+
+            if transform.translation.y > (half_height - player_half_height) {
+                player.velocity.y *= -1.0;
+                transform.translation.y = half_height - player_half_height;
+            };
+        });
 }
 
 fn offscreen_despawn_system(
