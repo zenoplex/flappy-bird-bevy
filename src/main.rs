@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::{prelude::*, sprite::collide_aabb::collide};
+use bevy::{app, prelude::*, sprite::collide_aabb::collide};
 use rand::{thread_rng, Rng};
 
 const GRAVITY: f32 = 10.0;
@@ -212,6 +212,28 @@ fn collistion_system(
     }
 }
 
+fn boundary_system(
+    windows: Res<Windows>,
+    mut app_state: ResMut<State<AppState>>,
+    player_query: Query<(&Transform, &Sprite), With<Player>>,
+) {
+    let window = match windows.get_primary() {
+        Some(window) => window,
+        None => return,
+    };
+
+    let half_height = window.height() / 2.0;
+
+    player_query.iter().for_each(|(transform, sprite)| {
+        // TODO: set offset for ground
+        if transform.translation.y < -(half_height + sprite.size.y) {
+            app_state
+                .set(AppState::GameOver)
+                .expect("Failed to change state");
+        };
+    });
+}
+
 fn offscreen_despawn_system(
     windows: Res<Windows>,
     query: Query<(Entity, &Transform)>,
@@ -311,6 +333,7 @@ fn main() {
                 .with_system(spawn_pipe.system())
                 .with_system(pipe_move_system.system())
                 .with_system(collistion_system.system())
+                .with_system(boundary_system.system())
                 .with_system(offscreen_despawn_system.system()),
         )
         .add_system_set(
