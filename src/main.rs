@@ -7,9 +7,8 @@ const GRAVITY: f32 = 10.0;
 const MAX_VELOCITY_Y: f32 = 200.0;
 const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
 const MAX_ANGLE_DOWN: f32 = PI * 0.5;
-// Can replace with Sprite.size
 const PIPE_WIDTH: f32 = 70.0;
-const PIPE_HEIGHT: f32 = 430.0;
+const PIPE_HEIGHT: f32 = 500.0;
 
 struct GameState {
     score: u32,
@@ -127,10 +126,27 @@ fn spawn_pipe(
 #[derive(Default, Clone)]
 struct UiFont(Handle<Font>);
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     let handle: Handle<Font> = asset_server.load("flappy_bird.ttf");
     commands.insert_resource(UiFont(handle));
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+
+    let _assets = asset_server
+        .load_folder("images")
+        .expect("Failed to load assets");
+
+    commands.spawn_bundle(SpriteBundle {
+        material: materials.add(asset_server.get_handle("images/background.png").into()),
+        transform: Transform {
+            scale: Vec3::new(3.0, 3.0, 1.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 }
 
 fn in_game_input_system(keyboard_input: Res<Input<KeyCode>>, mut commands: Commands) {
