@@ -28,6 +28,10 @@ struct WantToFlap;
 
 struct OffscreenDespawn;
 
+struct Parallax {
+    loop_x: f32,
+}
+
 fn add_player(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -40,7 +44,7 @@ fn add_player(
             .spawn_bundle(SpriteBundle {
                 material: materials.add(texture.into()),
                 transform: Transform {
-                    translation: Vec3::new(-(window.width() / 10.0), 0.0, 0.),
+                    translation: Vec3::new(-(window.width() / 10.0), 0.0, 100.0),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -74,12 +78,10 @@ fn spawn_pipe(
 
     if let Some(window) = windows.get_primary() {
         let pos_x = window.width() / 2.0;
-        let pipe_offset_x = PIPE_WIDTH / 2.0;
         let pipe_offset_y = PIPE_HEIGHT / 2.0;
-        // TODO: use rand
         let mut rng = thread_rng();
         let max_gap_size = window.height() / 4.0;
-        let min_gap_size = window.height() / 10.0;
+        let min_gap_size = window.height() / 8.0;
         let gap_y = rng.gen_range(0.0..(window.height() / 2.0)) - window.height() / 4.0;
         let half_gap_size = rng.gen_range(min_gap_size..max_gap_size) / 2.0;
 
@@ -135,17 +137,27 @@ fn setup(
     commands.insert_resource(UiFont(handle));
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-    let _assets = asset_server
-        .load_folder("images")
-        .expect("Failed to load assets");
-
-    commands.spawn_bundle(SpriteBundle {
-        material: materials.add(asset_server.get_handle("images/background.png").into()),
-        transform: Transform {
-            scale: Vec3::new(3.0, 3.0, 1.0),
+    let background_texture = asset_server.load("background.png");
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(background_texture.into()),
+            // Using Sprite to increase size instead of scale because we rely on Sprite.size
+            sprite: Sprite::new(Vec2::new(2760.0, 720.0)),
+            transform: Transform {
+                translation: Vec3::new(690.0, 0.0, 0.0),
+                ..Default::default()
+            },
             ..Default::default()
-        },
-        ..Default::default()
+        })
+        .insert(Parallax { loop_x: 690.0 });
+}
+
+fn parallax_system(time: Res<Time>, mut query: Query<(&Parallax, &mut Transform)>) {
+    query.iter_mut().for_each(|(parallax, mut transform)| {
+        transform.translation.x = -((-(transform.translation.x - parallax.loop_x)
+            + 200.0 * time.delta_seconds())
+            % (parallax.loop_x * 2.0))
+            + parallax.loop_x;
     });
 }
 
@@ -260,7 +272,7 @@ fn boundary_system(
 
 fn offscreen_despawn_system(
     windows: Res<Windows>,
-    query: Query<(Entity, &Transform)>,
+    query: Query<(Entity, &Transform), With<Pipe>>,
     mut commands: Commands,
 ) {
     let window = match windows.get_primary() {
@@ -330,7 +342,7 @@ fn restart_game_system(
 
     if let Some(window) = windows.get_primary() {
         player_query.iter_mut().for_each(|(_, mut transform)| {
-            transform.translation = Vec3::new(-(window.width() / 10.0), 0.0, 0.0);
+            transform.translation = Vec3::new(-(window.width() / 10.0), 0.0, 100.0);
         });
     };
 }
@@ -353,11 +365,12 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
                 .with_system(move_system.system())
+                .with_system(parallax_system.system())
                 .with_system(in_game_input_system.system())
                 .with_system(spawn_pipe.system())
                 .with_system(pipe_move_system.system())
                 .with_system(collistion_system.system())
-                .with_system(boundary_system.system())
+                // .with_system(boundary_system.system())
                 .with_system(offscreen_despawn_system.system()),
         )
         .add_system_set(
