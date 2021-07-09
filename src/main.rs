@@ -29,6 +29,7 @@ struct WantToFlap;
 struct OffscreenDespawn;
 
 struct Parallax {
+    velocity_x: f32,
     loop_x: f32,
 }
 
@@ -149,13 +150,17 @@ fn setup(
             },
             ..Default::default()
         })
-        .insert(Parallax { loop_x: 690.0 });
+        .insert(Parallax {
+            velocity_x: 80.0,
+            loop_x: 690.0,
+        });
 }
 
 fn parallax_system(time: Res<Time>, mut query: Query<(&Parallax, &mut Transform)>) {
     query.iter_mut().for_each(|(parallax, mut transform)| {
+        // Looping from -loop_x to loop_x
         transform.translation.x = -((-(transform.translation.x - parallax.loop_x)
-            + 200.0 * time.delta_seconds())
+            + parallax.velocity_x * time.delta_seconds())
             % (parallax.loop_x * 2.0))
             + parallax.loop_x;
     });
