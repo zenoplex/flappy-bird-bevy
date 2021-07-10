@@ -3,8 +3,10 @@ use std::f32::consts::PI;
 use bevy::{prelude::*, sprite::collide_aabb::collide};
 use rand::{thread_rng, Rng};
 
-const GRAVITY: f32 = 10.0;
-const MAX_VELOCITY_Y: f32 = 200.0;
+const FLAP_VELOCITY_Y: f32 = 300.0;
+const GRAVITY: f32 = 1000.0;
+const PIPE_VELOCTY_X: f32 = 250.0;
+const MAX_VELOCITY_Y: f32 = 500.0;
 const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
 const MAX_ANGLE_DOWN: f32 = PI * 0.5;
 const PIPE_WIDTH: f32 = 70.0;
@@ -15,9 +17,9 @@ struct GameState {
 }
 
 #[derive(Debug)]
-struct Player {
-    velocity: Vec3,
-}
+struct Player;
+
+struct Gravity(Vec2);
 
 #[derive(Debug)]
 struct Pipe;
@@ -50,9 +52,11 @@ fn add_player(
                 },
                 ..Default::default()
             })
-            .insert(Player {
-                velocity: Vec3::ZERO,
-            });
+            .insert_bundle((
+                Player,
+                Velocity(Vec2::ZERO),
+                Gravity(Vec2::new(0.0, GRAVITY)),
+            ));
     }
 }
 
@@ -73,8 +77,7 @@ fn spawn_pipe(
     // calc gaps
     // move pipes
 
-    // TODO: Remove hard coded variable
-    let velocity = Vec2::new(-200.0, 0.0);
+    let velocity = Vec2::new(-PIPE_VELOCTY_X, 0.0);
     let texture = asset_server.load("pipe.png");
 
     if let Some(window) = windows.get_primary() {
@@ -201,41 +204,39 @@ fn menu_input_system(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<
     }
 }
 
-fn move_system(
+fn flap_system(
     time: Res<Time>,
     // Maybe use QuerySet?
-    mut q: Query<(&mut Player, &mut Transform)>,
-    mut q2: Query<(Entity, &WantToFlap)>,
+    mut q: Query<(&mut Transform, &mut Velocity), With<Player>>,
+    mut query_intent: Query<(Entity, &WantToFlap)>,
+
     mut commands: Commands,
 ) {
-    for (mut player, mut transform) in q.iter_mut() {
-        let delta = time.delta_seconds();
-        if let Ok((entity, _)) = q2.single_mut() {
-            player.velocity.y = 5.0;
+    for (mut transform, mut velocity) in q.iter_mut() {
+        // let delta = time.delta_seconds();
+
+        if let Ok((entity, _)) = query_intent.single_mut() {
+            velocity.0.y = FLAP_VELOCITY_Y;
             commands.entity(entity).despawn();
         }
 
-        player.velocity.y += -GRAVITY * delta;
-        // Clamp terminal velocity
-        player.velocity.y = player.velocity.y.max(-MAX_VELOCITY_Y);
-        transform.translation.y += player.velocity.y;
-        let angle = player
-            .velocity
-            .y
-            .atan2(1.0)
-            .clamp(-MAX_ANGLE_DOWN, MAX_ANGLE_UP);
-
-        transform.rotation = Quat::from_rotation_z(angle);
+        // transform.translation.y += player.velocity.y;
+        // let angle = velocity.0.y.atan2(1.0).clamp(-MAX_ANGLE_DOWN, MAX_ANGLE_UP);
+        // transform.rotation = Quat::from_rotation_z(angle);
     }
 }
 
-fn pipe_move_system(t: Res<Time>, mut q: Query<(&Velocity, &mut Transform)>) {
+fn move_system(t: Res<Time>, mut q: Query<(&mut Velocity, &mut Transform, Option<&Gravity>)>) {
     let delta = t.delta_seconds();
-    q.iter_mut().for_each(|(v, mut t)| {
+    q.iter_mut().for_each(|(mut v, mut t, gravity)| {
         t.translation.x += v.0.x * delta;
         t.translation.y += v.0.y * delta;
 
-        // println!("{:?}", translation.x);
+        if let Some(gravity) = gravity {
+            v.0.y += (-gravity.0.y * delta).max(-MAX_VELOCITY_Y);
+            // Clamp terminal velocity
+            v.0.y = v.0.y.max(-MAX_VELOCITY_Y);
+        }
     })
 }
 
@@ -290,7 +291,8 @@ fn boundary_system(
             };
 
             if transform.translation.y > (half_height - player_half_height) {
-                player.velocity.y *= -1.0;
+                // player.velocity.y *= -1.0;
+                // TODO: Use Velocity
                 transform.translation.y = half_height - player_half_height;
             };
         });
@@ -390,11 +392,11 @@ fn main() {
         .add_startup_system(add_player.system())
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
-                .with_system(move_system.system())
+                .with_system(flap_system.system())
                 .with_system(parallax_system.system())
                 .with_system(in_game_input_system.system())
                 .with_system(spawn_pipe.system())
-                .with_system(pipe_move_system.system())
+                .with_system(move_system.system())
                 .with_system(collistion_system.system())
                 // .with_system(boundary_system.system())
                 .with_system(offscreen_despawn_system.system()),
