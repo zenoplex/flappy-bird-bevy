@@ -152,17 +152,18 @@ fn setup(
         })
         .insert(Parallax {
             velocity_x: 80.0,
-            loop_x: 690.0,
+            loop_x: 1380.0,
         });
 }
 
 fn parallax_system(time: Res<Time>, mut query: Query<(&Parallax, &mut Transform)>) {
     query.iter_mut().for_each(|(parallax, mut transform)| {
+        let offset_x = parallax.loop_x / 2.0;
         // Looping from -loop_x to loop_x
-        transform.translation.x = -((-(transform.translation.x - parallax.loop_x)
+        transform.translation.x = -((-(transform.translation.x - offset_x)
             + parallax.velocity_x * time.delta_seconds())
-            % (parallax.loop_x * 2.0))
-            + parallax.loop_x;
+            % parallax.loop_x)
+            + offset_x;
     });
 }
 
