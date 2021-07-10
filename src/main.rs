@@ -133,27 +133,47 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    windows: Res<Windows>,
 ) {
-    let handle: Handle<Font> = asset_server.load("flappy_bird.ttf");
-    commands.insert_resource(UiFont(handle));
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    if let Some(window) = windows.get_primary() {
+        let handle: Handle<Font> = asset_server.load("flappy_bird.ttf");
+        commands.insert_resource(UiFont(handle));
+        commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-    let background_texture = asset_server.load("background.png");
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.add(background_texture.into()),
-            // Using Sprite to increase size instead of scale because we rely on Sprite.size
-            sprite: Sprite::new(Vec2::new(2760.0, 720.0)),
-            transform: Transform {
-                translation: Vec3::new(690.0, 0.0, 0.0),
+        let background_texture = asset_server.load("background.png");
+        commands
+            .spawn_bundle(SpriteBundle {
+                material: materials.add(background_texture.into()),
+                // Using Sprite to increase size instead of scale because we rely on Sprite.size
+                sprite: Sprite::new(Vec2::new(2760.0, 720.0)),
+                transform: Transform {
+                    translation: Vec3::new(690.0, 0.0, 0.0),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Parallax {
-            velocity_x: 80.0,
-            loop_x: 1380.0,
-        });
+            })
+            .insert(Parallax {
+                velocity_x: 80.0,
+                loop_x: 1380.0,
+            });
+
+        let base_texture = asset_server.load("base.png");
+        commands
+            .spawn_bundle(SpriteBundle {
+                material: materials.add(base_texture.into()),
+                transform: Transform {
+                    scale: Vec3::new(1.0, 1.0, 1.0),
+                    translation: Vec3::new(690.0, -window.height() / 2.0 + (112.0 / 2.0), 200.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Parallax {
+                // Should be same as pipe speed
+                velocity_x: 200.0,
+                loop_x: 1296.0,
+            });
+    }
 }
 
 fn parallax_system(time: Res<Time>, mut query: Query<(&Parallax, &mut Transform)>) {
