@@ -121,7 +121,7 @@ fn setup(
                 .spawn_bundle(SpriteBundle {
                     material: materials.add(texture.into()),
                     transform: Transform {
-                        translation: Vec3::new(-(window.width() / 10.0), 0.0, 100.0),
+                        translation: Vec3::new(0.0, 0.0, 100.0),
                         ..Default::default()
                     },
                     ..Default::default()
@@ -160,7 +160,7 @@ fn setup(
                 material: materials.add(base_texture.into()),
                 transform: Transform {
                     scale: Vec3::new(1.0, 1.0, 1.0),
-                    translation: Vec3::new(690.0, -window.height() / 2.0 + (112.0 / 2.0), 200.0),
+                    translation: Vec3::new(648.0, -window.height() / 2.0 + (112.0 / 2.0), 200.0),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -185,13 +185,13 @@ fn parallax_system(time: Res<Time>, mut query: Query<(&Parallax, &mut Transform)
 }
 
 fn in_game_input_system(keyboard_input: Res<Input<KeyCode>>, mut commands: Commands) {
-    if keyboard_input.pressed(KeyCode::Up) {
+    if keyboard_input.pressed(KeyCode::Space) {
         commands.spawn().insert(WantToFlap {});
     }
 }
 
 fn menu_input_system(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<State<AppState>>) {
-    if keyboard_input.pressed(KeyCode::Return) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
         app_state
             .set(AppState::InGame)
             .expect("Error switching app_state");
@@ -220,13 +220,22 @@ fn flap_system(
     }
 }
 
-fn move_system(t: Res<Time>, mut q: Query<(&mut Velocity, &mut Transform, Option<&Gravity>)>) {
+fn move_system(
+    t: Res<Time>,
+    mut q: Query<(&mut Velocity, &mut Transform, Option<&Gravity>)>,
+    app_state: Res<State<AppState>>,
+) {
     let delta = t.delta_seconds();
     q.iter_mut().for_each(|(mut v, mut t, gravity)| {
         t.translation.x += v.0.x * delta;
         t.translation.y += v.0.y * delta;
 
         if let Some(gravity) = gravity {
+            // Maybe remove Gravity component from player
+            if *app_state.current() != AppState::InGame {
+                return;
+            }
+
             v.0.y += (-gravity.0.y * delta).max(-MAX_VELOCITY_Y);
             // Clamp terminal velocity
             v.0.y = v.0.y.max(-MAX_VELOCITY_Y);
@@ -314,6 +323,31 @@ fn offscreen_despawn_system(
     });
 }
 
+struct MainMenuScreen;
+
+fn main_menu_system(mut commands: Commands, font: Res<UiFont>) {
+    let text_style = TextStyle {
+        font: font.0.clone(),
+        font_size: 60.0,
+        color: Color::WHITE,
+    };
+    let text_alignment = TextAlignment {
+        vertical: VerticalAlign::Center,
+        horizontal: HorizontalAlign::Center,
+    };
+
+    commands
+        .spawn_bundle(Text2dBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, -60.0, 50.0),
+                ..Default::default()
+            },
+            text: Text::with_section("Press Space to play", text_style, text_alignment),
+            ..Default::default()
+        })
+        .insert(MainMenuScreen);
+}
+
 struct GameOverScreen;
 
 fn game_over_system(mut commands: Commands, font: Res<UiFont>) {
@@ -333,14 +367,7 @@ fn game_over_system(mut commands: Commands, font: Res<UiFont>) {
                 translation: Vec3::new(0.0, 0.0, 50.0),
                 ..Default::default()
             },
-            text: Text::with_section(
-                "
-Game Over
-Score: 0
-",
-                text_style,
-                text_alignment,
-            ),
+            text: Text::with_section("Game Over", text_style, text_alignment),
             ..Default::default()
         })
         .insert(GameOverScreen);
@@ -349,24 +376,32 @@ Score: 0
 // should be initializing position and stuff
 fn restart_game_system(
     mut commands: Commands,
-    game_over_query: Query<(Entity, &GameOverScreen)>,
+    game_over_query: Query<(Entity, Option<&GameOverScreen>, Option<&MainMenuScreen>)>,
     pipe_query: Query<(Entity, &Pipe)>,
-    mut player_query: Query<(&Player, &mut Transform)>,
-    windows: Res<Windows>,
+    mut player_query: Query<(&Player, &mut Transform, &mut Velocity)>,
 ) {
-    game_over_query.iter().for_each(|(entity, _)| {
-        commands.entity(entity).despawn();
-    });
+    game_over_query
+        .iter()
+        .for_each(|(entity, game_over_screen, main_menu_screen)| {
+            if game_over_screen.is_some() {
+                commands.entity(entity).despawn();
+            }
+
+            if main_menu_screen.is_some() {
+                commands.entity(entity).despawn();
+            }
+        });
 
     pipe_query.iter().for_each(|(pipe_entity, _)| {
         commands.entity(pipe_entity).despawn();
     });
 
-    if let Some(window) = windows.get_primary() {
-        player_query.iter_mut().for_each(|(_, mut transform)| {
-            transform.translation = Vec3::new(-(window.width() / 10.0), 0.0, 100.0);
+    player_query
+        .iter_mut()
+        .for_each(|(_, mut transform, mut velocity)| {
+            transform.translation = Vec3::new(0.0, 0.0, 100.0);
+            velocity.0 = Vec2::ZERO
         });
-    };
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -383,6 +418,18 @@ fn main() {
         .add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
         .add_startup_system(setup.system())
+        // TODO: display main menu
+        .add_system_set(
+            SystemSet::on_enter(AppState::MainMenu).with_system(main_menu_system.system()),
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::MainMenu)
+                .with_system(move_system.system())
+                .with_system(menu_input_system.system()),
+        )
+        .add_system_set(
+            SystemSet::on_enter(AppState::InGame).with_system(restart_game_system.system()),
+        )
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
                 .with_system(flap_system.system())
@@ -391,7 +438,7 @@ fn main() {
                 .with_system(pipe_system.system())
                 .with_system(move_system.system())
                 .with_system(collistion_system.system())
-                // .with_system(boundary_system.system())
+                .with_system(boundary_system.system())
                 .with_system(offscreen_despawn_system.system()),
         )
         .add_system_set(
@@ -402,10 +449,7 @@ fn main() {
                 .with_system(menu_input_system.system())
                 .with_system(offscreen_despawn_system.system()),
         )
-        .add_system_set(
-            SystemSet::on_exit(AppState::GameOver).with_system(restart_game_system.system()),
-        )
         // TODO: Add menu screen
-        .add_state(AppState::InGame)
+        .add_state(AppState::MainMenu)
         .run();
 }
