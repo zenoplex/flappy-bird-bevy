@@ -273,7 +273,7 @@ fn collistion_system(
 fn boundary_system(
     windows: Res<Windows>,
     mut app_state: ResMut<State<AppState>>,
-    mut player_query: Query<(&mut Transform, &Sprite, &mut Player)>,
+    mut player_query: Query<(&mut Transform, &Sprite, &mut Velocity), With<Player>>,
 ) {
     let window = match windows.get_primary() {
         Some(window) => window,
@@ -284,7 +284,7 @@ fn boundary_system(
 
     player_query
         .iter_mut()
-        .for_each(|(mut transform, sprite, mut player)| {
+        .for_each(|(mut transform, sprite, mut velocity)| {
             let player_half_height = sprite.size.y;
             // TODO: set offset for ground
             if transform.translation.y < -(half_height - player_half_height) {
@@ -293,9 +293,9 @@ fn boundary_system(
                     .expect("Failed to change state");
             };
 
+            // Reflect if player hit the ceiling
             if transform.translation.y > (half_height - player_half_height) {
-                // player.velocity.y *= -1.0;
-                // TODO: Use Velocity
+                velocity.0 *= -1.0;
                 transform.translation.y = half_height - player_half_height;
             };
         });
