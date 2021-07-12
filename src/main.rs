@@ -38,7 +38,7 @@ struct Parallax {
 
 struct SpawnTimer(Timer);
 
-fn spawn_pipe(
+fn pipe_system(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut commands: Commands,
@@ -388,7 +388,7 @@ fn main() {
                 .with_system(flap_system.system())
                 .with_system(parallax_system.system())
                 .with_system(in_game_input_system.system())
-                .with_system(spawn_pipe.system())
+                .with_system(pipe_system.system())
                 .with_system(move_system.system())
                 .with_system(collistion_system.system())
                 // .with_system(boundary_system.system())
