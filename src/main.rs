@@ -35,31 +35,6 @@ struct Parallax {
     loop_x: f32,
 }
 
-fn add_player(
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut commands: Commands,
-    windows: Res<Windows>,
-) {
-    let texture = asset_server.load("bird.png");
-    if let Some(window) = windows.get_primary() {
-        commands
-            .spawn_bundle(SpriteBundle {
-                material: materials.add(texture.into()),
-                transform: Transform {
-                    translation: Vec3::new(-(window.width() / 10.0), 0.0, 100.0),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .insert_bundle((
-                Player,
-                Velocity(Vec2::ZERO),
-                Gravity(Vec2::new(0.0, GRAVITY)),
-            ));
-    }
-}
-
 struct SpawnTimer(Timer);
 
 fn spawn_pipe(
@@ -139,6 +114,24 @@ fn setup(
     windows: Res<Windows>,
 ) {
     if let Some(window) = windows.get_primary() {
+        let texture = asset_server.load("bird.png");
+        if let Some(window) = windows.get_primary() {
+            commands
+                .spawn_bundle(SpriteBundle {
+                    material: materials.add(texture.into()),
+                    transform: Transform {
+                        translation: Vec3::new(-(window.width() / 10.0), 0.0, 100.0),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert_bundle((
+                    Player,
+                    Velocity(Vec2::ZERO),
+                    Gravity(Vec2::new(0.0, GRAVITY)),
+                ));
+        }
+
         let handle: Handle<Font> = asset_server.load("flappy_bird.ttf");
         commands.insert_resource(UiFont(handle));
         commands.spawn_bundle(OrthographicCameraBundle::new_2d());
@@ -389,7 +382,6 @@ fn main() {
         .add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
         .add_startup_system(setup.system())
-        .add_startup_system(add_player.system())
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
                 .with_system(flap_system.system())
