@@ -31,6 +31,7 @@ struct WantToFlap;
 struct OffscreenDespawn;
 
 struct Parallax {
+    // Maybe use Vecolity
     velocity_x: f32,
     loop_x: f32,
 }
@@ -166,7 +167,7 @@ fn setup(
             })
             .insert(Parallax {
                 // Should be same as pipe speed
-                velocity_x: 200.0,
+                velocity_x: PIPE_VELOCTY_X,
                 loop_x: 1296.0,
             });
     }
