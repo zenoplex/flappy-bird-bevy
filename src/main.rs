@@ -185,7 +185,7 @@ fn parallax_system(time: Res<Time>, mut query: Query<(&Parallax, &mut Transform)
 }
 
 fn in_game_input_system(keyboard_input: Res<Input<KeyCode>>, mut commands: Commands) {
-    if keyboard_input.pressed(KeyCode::Space) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
         commands.spawn().insert(WantToFlap {});
     }
 }
