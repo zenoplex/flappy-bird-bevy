@@ -9,6 +9,7 @@ const PIPE_VELOCTY_X: f32 = 250.0;
 const MAX_VELOCITY_Y: f32 = 500.0;
 const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
 const MAX_ANGLE_DOWN: f32 = PI * 0.5;
+const BASE_HEIGHT: f32 = 112.0;
 const PIPE_WIDTH: f32 = 70.0;
 const PIPE_HEIGHT: f32 = 500.0;
 
@@ -49,20 +50,18 @@ fn pipe_system(
     if !spawn_timer.0.tick(time.delta()).finished() {
         return;
     }
-    // TODO: calc positions
-    // calc gaps
-    // move pipes
-
     let velocity = Vec2::new(-PIPE_VELOCTY_X, 0.0);
     let texture = asset_server.load("pipe.png");
 
     if let Some(window) = windows.get_primary() {
+        let available_height = (window.height() / 2.0) - BASE_HEIGHT;
         let pos_x = window.width() / 2.0;
         let pipe_offset_y = PIPE_HEIGHT / 2.0;
         let mut rng = thread_rng();
-        let max_gap_size = window.height() / 4.0;
-        let min_gap_size = window.height() / 8.0;
-        let gap_y = rng.gen_range(0.0..(window.height() / 2.0)) - window.height() / 4.0;
+        // Gap size should be based from player size
+        let max_gap_size = available_height;
+        let min_gap_size = available_height / 3.5;
+        let gap_y = rng.gen_range(0.0..available_height / 2.0);
         let half_gap_size = rng.gen_range(min_gap_size..max_gap_size) / 2.0;
 
         // Bottom
@@ -160,7 +159,11 @@ fn setup(
                 material: materials.add(base_texture.into()),
                 transform: Transform {
                     scale: Vec3::new(1.0, 1.0, 1.0),
-                    translation: Vec3::new(648.0, -window.height() / 2.0 + (112.0 / 2.0), 200.0),
+                    translation: Vec3::new(
+                        648.0,
+                        -window.height() / 2.0 + (BASE_HEIGHT / 2.0),
+                        200.0,
+                    ),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -285,9 +288,9 @@ fn boundary_system(
     player_query
         .iter_mut()
         .for_each(|(mut transform, sprite, mut velocity)| {
-            let player_half_height = sprite.size.y;
-            // TODO: set offset for ground
-            if transform.translation.y < -(half_height - player_half_height) {
+            let player_half_height = sprite.size.y / 2.0;
+
+            if transform.translation.y <= -(half_height - player_half_height - BASE_HEIGHT) {
                 app_state
                     .set(AppState::GameOver)
                     .expect("Failed to change state");
@@ -416,7 +419,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        .insert_resource(SpawnTimer(Timer::from_seconds(2.0, true)))
+        .insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
         .add_startup_system(setup.system())
         // TODO: display main menu
         .add_system_set(
