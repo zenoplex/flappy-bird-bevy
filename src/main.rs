@@ -7,8 +7,8 @@ const FLAP_VELOCITY_Y: f32 = 300.0;
 const GRAVITY: f32 = 1000.0;
 const PIPE_VELOCTY_X: f32 = 250.0;
 const MAX_VELOCITY_Y: f32 = 500.0;
-const MAX_ANGLE_UP: f32 = PI * 0.5 * 0.5;
-const MAX_ANGLE_DOWN: f32 = PI * 0.5;
+const MAX_ANGLE_DOWN: f32 = -PI * 0.5;
+const MAX_ANGLE_UP: f32 = PI * 0.3;
 const BASE_HEIGHT: f32 = 112.0;
 const PIPE_WIDTH: f32 = 70.0;
 const PIPE_HEIGHT: f32 = 500.0;
@@ -211,9 +211,10 @@ fn flap_system(
     audio: Res<Audio>,
 ) {
     for (mut transform, mut velocity) in query_player.iter_mut() {
-        // let delta = time.delta_seconds();
+        let delta = time.delta_seconds();
 
         if let Ok((entity, _)) = query_intent.single_mut() {
+            println!("flap");
             velocity.0.y = FLAP_VELOCITY_Y;
 
             let sound = asset_server.load("audio_wing.wav");
@@ -222,9 +223,11 @@ fn flap_system(
             commands.entity(entity).despawn();
         }
 
-        // transform.translation.y += player.velocity.y;
-        // let angle = velocity.0.y.atan2(1.0).clamp(-MAX_ANGLE_DOWN, MAX_ANGLE_UP);
-        // transform.rotation = Quat::from_rotation_z(angle);
+        // Should use lerp
+        let angle = (velocity.0.y * delta)
+            .atan2(1.0)
+            .clamp(MAX_ANGLE_DOWN, MAX_ANGLE_UP);
+        transform.rotation = Quat::from_rotation_z(angle);
     }
 }
 
