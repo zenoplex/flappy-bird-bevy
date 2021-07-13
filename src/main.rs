@@ -267,7 +267,8 @@ fn collistion_system(
             .for_each(|(_, pipe_tranform, pipe_sprite)| {
                 let collision = collide(
                     player_tranform.translation,
-                    player_sprite.size,
+                    // Slightly make hitbox smaller
+                    player_sprite.size * 0.8,
                     pipe_tranform.translation,
                     pipe_sprite.size,
                 );
