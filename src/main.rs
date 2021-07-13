@@ -329,6 +329,7 @@ fn offscreen_despawn_system(
 struct MainMenuScreen;
 
 fn main_menu_system(mut commands: Commands, font: Res<UiFont>) {
+    // Consider using image because text is slow
     let text_style = TextStyle {
         font: font.0.clone(),
         font_size: 60.0,
@@ -354,6 +355,7 @@ fn main_menu_system(mut commands: Commands, font: Res<UiFont>) {
 struct GameOverScreen;
 
 fn game_over_system(mut commands: Commands, font: Res<UiFont>) {
+    // Consider using image because text is slow
     let text_style = TextStyle {
         font: font.0.clone(),
         font_size: 120.0,
