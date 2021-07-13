@@ -441,7 +441,6 @@ fn main() {
         .add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
         .add_startup_system(setup.system())
-        // TODO: display main menu
         .add_system_set(
             SystemSet::on_enter(AppState::MainMenu).with_system(main_menu_system.system()),
         )
@@ -472,7 +471,6 @@ fn main() {
                 .with_system(menu_input_system.system())
                 .with_system(offscreen_despawn_system.system()),
         )
-        // TODO: Add menu screen
         .add_state(AppState::MainMenu)
         .run();
 }
