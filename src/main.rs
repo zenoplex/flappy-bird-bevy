@@ -204,16 +204,21 @@ fn menu_input_system(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<
 fn flap_system(
     time: Res<Time>,
     // Maybe use QuerySet?
-    mut q: Query<(&mut Transform, &mut Velocity), With<Player>>,
+    mut query_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
     mut query_intent: Query<(Entity, &WantToFlap)>,
-
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
 ) {
-    for (mut transform, mut velocity) in q.iter_mut() {
+    for (mut transform, mut velocity) in query_player.iter_mut() {
         // let delta = time.delta_seconds();
 
         if let Ok((entity, _)) = query_intent.single_mut() {
             velocity.0.y = FLAP_VELOCITY_Y;
+
+            let sound = asset_server.load("audio_wing.wav");
+            audio.play(sound);
+
             commands.entity(entity).despawn();
         }
 
@@ -250,6 +255,8 @@ fn collistion_system(
     player_query: Query<(&Player, &Transform, &Sprite)>,
     pipe_query: Query<(&Pipe, &Transform, &Sprite)>,
     mut app_state: ResMut<State<AppState>>,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
 ) {
     if let Ok((_, player_tranform, player_sprite)) = player_query.single() {
         pipe_query
@@ -265,6 +272,9 @@ fn collistion_system(
                 if let Some(collision) = collision {
                     println!("end game, {:?}", collision);
 
+                    let sound = asset_server.load("audio_hit.wav");
+                    audio.play(sound);
+
                     app_state
                         .set(AppState::GameOver)
                         .expect("Failed to change app_state");
@@ -277,6 +287,8 @@ fn boundary_system(
     windows: Res<Windows>,
     mut app_state: ResMut<State<AppState>>,
     mut player_query: Query<(&mut Transform, &Sprite, &mut Velocity), With<Player>>,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
 ) {
     let window = match windows.get_primary() {
         Some(window) => window,
@@ -291,6 +303,9 @@ fn boundary_system(
             let player_half_height = sprite.size.y / 2.0;
 
             if transform.translation.y <= -(half_height - player_half_height - BASE_HEIGHT) {
+                let sound = asset_server.load("audio_hit.wav");
+                audio.play(sound);
+
                 app_state
                     .set(AppState::GameOver)
                     .expect("Failed to change state");
